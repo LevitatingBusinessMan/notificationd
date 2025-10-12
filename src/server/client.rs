@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::io;
 use std::io::BufReader;
 use std::io::prelude::*;
@@ -14,6 +15,7 @@ use crate::protocol;
 use crate::protocol::parser;
 use crate::protocol::parser::Message;
 use crate::server;
+use crate::server::database::DatabaseExt;
 use crate::server::ServerHandle;
 use anyhow::anyhow;
 use notifications::NotificationDetails;
@@ -80,7 +82,7 @@ impl ClientHandle {
             let line = line?;
             match parser::line(&line, false) {
                 Ok((_remaining, msg)) => handle.handle_message(msg)?,
-                Err(_e) => handle.write("-ERR PARSE\r\n")?,
+                Err(e) => handle.write(&format!("-ERR PARSE: {e}\r\n"))?,
             }
         }
         Ok(())
@@ -99,8 +101,6 @@ impl ClientHandle {
 
     // to return an error here means to kill the connection
     pub fn handle_message(&self, msg: protocol::parser::Message) -> anyhow::Result<()> {
-        println!("{msg:?}");
-
         if msg.sign.is_some() {
             self.write(&protocol::reply(
                 msg.id,
@@ -180,8 +180,15 @@ impl ClientHandle {
                             ))?,
                         },
                         "BODY" => match msg.trailing {
-                            Some(body) => {
-                                self.state.lock().unwrap().details.body = Some(body.clone())
+                            Some(line) => {
+                                let mut state = self.state.lock().unwrap();
+                                match &mut state.details.body {
+                                    Some(body) => {
+                                        body.push_str(&line);
+                                        body.push('\n');
+                                    },
+                                    None => state.details.body = Some(format!("{line}\n")),
+                                }
                             }
                             None => self.write(&protocol::reply(
                                 msg.id,
@@ -192,21 +199,41 @@ impl ClientHandle {
                             ))?,
                         },
                         "SEND" => {
-                            let title = self
-                                .state
-                                .lock()
-                                .unwrap()
-                                .details
-                                .title
-                                .clone()
-                                .unwrap_or(String::from(""));
-                            let body = self.state.lock().unwrap().details.body.clone().unwrap_or(String::from(""));
-                            let notification_id = server::NOTIFICATION_COUNTER
-                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                            let notify_msg = format!(
-                                "NOTIFY_START {} {}\r\nTITLE: {}\r\nBODY: {}\r\nNOTIFY_END {}\r\n",
-                                user, notification_id, title, body, notification_id
-                            );
+                            let mut details = self.state.lock().unwrap().details.clone();
+                            details.user = Some(user.clone());
+                            details.id = Some(server::next_id());
+                            if let Some(db) = &mut self.server.state.lock().unwrap().db {
+                                match details.save(db) {
+                                    Ok(n) => {
+                                        details.id = Some(db.last_insert_rowid() as usize);
+                                        server::set_id(details.id.unwrap());
+                                        println!("Saved {}, {} row affected", details.id.unwrap(), n);
+                                    },
+                                    Err(e) => println!("Error saving {}: {e}", details.id.unwrap()),
+                                }
+                            }
+
+                            if details.id.is_none() {
+                                details.id = Some(server::next_id());
+                            }
+
+                            let mut notify_msg = format!("NOTIFY_START {} {}\r\n", user, details.id.unwrap());
+
+                            if let Some(title) = details.title {
+                                notify_msg += &format!("TITLE: {}\r\n", title)
+                            }
+
+                            if !details.tags.is_empty() {
+                                notify_msg += &format!("TAGS: {}\r\n", details.tags.join(" "))
+                            }
+
+                            if let Some(body) = details.body {
+                                for line in body.lines() {
+                                    notify_msg += &format!("BODY: {}\r\n", line);
+                                }
+                            }
+
+                            notify_msg += &format!("NOTIFY_END {}\r\n", details.id.unwrap());
 
                             let n = self.server.broadcast_notification(notify_msg);
                             self.write(&protocol::reply(
@@ -258,9 +285,58 @@ impl ClientHandle {
                                     None,
                                 ))?
                             }
-                        },
+                        }
                         "QUIT" => {
                             self.stream.shutdown(std::net::Shutdown::Both)?;
+                        },
+                        "HISTORY" => {
+                            if let Some(db) = &mut self.server.state.lock().unwrap().db {
+                                if let Ok(notifications) = NotificationDetails::load_all(db) {
+                                    let mut replies = vec![];
+                                    for notifications in notifications {
+                                        replies.push(protocol::reply(msg.id, true, "HISTORY", vec![
+                                            &notifications.id.unwrap().to_string(),
+                                            &notifications.user.unwrap().to_string(),
+                                        ], Some(&notifications.timestamp.unwrap().to_string())));
+
+                                        if let Some(title) = notifications.title {
+                                            replies.push(protocol::reply(msg.id, true, "HISTORY", vec![
+                                                "TITLE"
+                                            ], Some(&title)));
+                                        }
+
+                                        if !notifications.tags.is_empty() {
+                                            replies.push(protocol::reply(msg.id, true, "HISTORY", vec![
+                                                "TAGS"
+                                            ], Some(&notifications.tags.join(" "))));
+                                        }
+                                        if let Some(body) = notifications.body {
+                                            for line in body.lines() {
+                                                replies.push(protocol::reply(msg.id, true, "HISTORY", vec![
+                                                    "BODY"
+                                                ], Some(line)));
+                                            }
+                                        }
+                                        self.write(&replies.join(""))?;
+                                    }
+                                } else {
+                                    self.write(&protocol::reply(
+                                        msg.id,
+                                        false,
+                                        "HISTORY",
+                                        vec!["DB_FAIL"],
+                                        None,
+                                    ))?
+                                }
+                            } else {
+                                self.write(&protocol::reply(
+                                    msg.id,
+                                    false,
+                                    "HISTORY",
+                                    vec!["NO_DB"],
+                                    None,
+                                ))?
+                            }
                         },
                         _ => self.write(&protocol::reply(
                             msg.id,

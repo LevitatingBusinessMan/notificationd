@@ -39,18 +39,24 @@ pub fn main(connect: String) -> anyhow::Result<()> {
                 details = Some(NotificationDetails::new());
                 if let Some(ref mut details) = details {
                     details.user = msg.arguments.first().cloned();
+                    details.id = msg.arguments.get(1).cloned().map(|s| s.parse::<usize>().unwrap());
                 }
             }
             "TITLE" => {
                 if let Some(ref mut details) = details {
                     details.title = msg.trailing;
                 }
-            },
+            }
             "BODY" => {
                 if let Some(ref mut details) = details {
-                    details.body = msg.trailing;
+                    if let Some(body) = &mut details.body {
+                        body.push_str(&msg.trailing.unwrap());
+                        body.push('\n');
+                    } else {
+                        details.body = msg.trailing.map(|mut s| { s.push('\n'); s });
+                    }
                 }
-            },
+            }
             "NOTIFY_END" => {
                 if let Some(details) = details {
                     let _ = display(details, &notify_iface)?;

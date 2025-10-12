@@ -1,4 +1,5 @@
 use nom;
+use nom::character::complete::none_of;
 use nom::AsChar;
 use nom::IResult;
 use nom::Parser;
@@ -29,7 +30,8 @@ fn arguments(input: &str) -> IResult<&str, Vec<&str>> {
 }
 
 fn trailing(input: &str) -> IResult<&str, &str> {
-    preceded(space1, is_not("\r\n")).parse(input)
+    preceded(opt(space1), take_while(|c| c != '\r' || c != '\n')).parse(input)
+    //preceded(space1, is_not("\r\n")).parse(input)
 }
 
 fn id(input: &str) -> IResult<&str, u32> {
@@ -70,4 +72,10 @@ pub fn line(input: &str, terminated_: bool) -> IResult<&str, Message> {
     };
 
     Ok((input, msg))
+}
+
+#[test]
+fn empty_trailing() {
+    let (res_, msg) = line("BODY:", false).unwrap();
+    println!("{res_:?} {msg:?}");
 }
