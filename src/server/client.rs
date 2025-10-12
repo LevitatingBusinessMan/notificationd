@@ -259,7 +259,7 @@ impl ClientHandle {
                             msg.id,
                             true,
                             "VERSION",
-                            vec![env!("CARGO_PKG_VERSION")],
+                            vec![env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")],
                             None,
                         ))?,
                         "CONSUME" => {
