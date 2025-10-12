@@ -263,8 +263,7 @@ impl ClientHandle {
                             None,
                         ))?,
                         "CONSUME" => {
-                            let on_bind = String::from("on");
-                            let arg = msg.arguments.first().unwrap_or(&on_bind);
+                            let arg = &msg.arguments.first().map_or(String::from("on"), |a| a.to_lowercase());
 
                             if arg == "on" || arg == "true" {
                                 self.state.lock().unwrap().consume = true;
@@ -345,6 +344,31 @@ impl ClientHandle {
                                     None,
                                 ))?
                             }
+                        },
+                        "WHO" => {
+                            for client in &self.server.state.lock().unwrap().clients {
+                                let state = client.state.lock().unwrap();
+                                if let Some(login) = &state.name {
+                                    let mut args = vec![login.as_ref()];
+                                    if state.consume {
+                                        args.push("CONSUME");
+                                    }
+                                    self.write(&protocol::reply(
+                                        msg.id,
+                                        true,
+                                        "WHO",
+                                        args,
+                                        Some(&client.peer.to_string()),
+                                    ))?
+                                }
+                            }
+                            self.write(&protocol::reply(
+                                msg.id,
+                                true,
+                                "WHO",
+                                vec!["END"],
+                                None,
+                            ))?;
                         },
                         _ => self.write(&protocol::reply(
                             msg.id,
