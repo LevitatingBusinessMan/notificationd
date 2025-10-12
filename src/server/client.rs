@@ -217,23 +217,23 @@ impl ClientHandle {
                                 details.id = Some(server::next_id());
                             }
 
-                            let mut notify_msg = format!("NOTIFY_START {} {}\r\n", user, details.id.unwrap());
+                            let mut notify_msg = format!("$NOTIFY_START {} {}\r\n", user, details.id.unwrap());
 
                             if let Some(title) = details.title {
-                                notify_msg += &format!("TITLE: {}\r\n", title)
+                                notify_msg += &format!("$TITLE: {}\r\n", title)
                             }
 
                             if !details.tags.is_empty() {
-                                notify_msg += &format!("TAGS: {}\r\n", details.tags.join(" "))
+                                notify_msg += &format!("$TAGS: {}\r\n", details.tags.join(" "))
                             }
 
                             if let Some(body) = details.body {
                                 for line in body.lines() {
-                                    notify_msg += &format!("BODY: {}\r\n", line);
+                                    notify_msg += &format!("$BODY: {}\r\n", line);
                                 }
                             }
 
-                            notify_msg += &format!("NOTIFY_END {}\r\n", details.id.unwrap());
+                            notify_msg += &format!("$NOTIFY_END {}\r\n", details.id.unwrap());
 
                             let n = self.server.broadcast_notification(notify_msg);
                             self.write(&protocol::reply(

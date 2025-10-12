@@ -1,5 +1,4 @@
 use nom;
-use nom::character::complete::none_of;
 use nom::AsChar;
 use nom::IResult;
 use nom::Parser;
@@ -17,8 +16,8 @@ use nom::multi::many0;
 use nom::sequence::preceded;
 use nom::sequence::terminated;
 
-fn sign(input: &str) -> IResult<&str, bool> {
-    map(alt((char('+'), char('-'))), |s| s == '+').parse(input)
+fn sign(input: &str) -> IResult<&str, char> {
+    alt((char('+'), char('-'), char('$'))).parse(input)
 }
 
 fn command(input: &str) -> IResult<&str, &str> {
@@ -45,7 +44,7 @@ fn crlf(input: &str) -> IResult<&str, &str> {
 #[derive(Debug)]
 pub struct Message {
     pub id: Option<u32>,
-    pub sign: Option<bool>,
+    pub sign: Option<char>,
     pub command: String,
     pub arguments: Vec<String>,
     pub trailing: Option<String>,
