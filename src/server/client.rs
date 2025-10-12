@@ -179,24 +179,32 @@ impl ClientHandle {
                                 None,
                             ))?,
                         },
-                        "BODY" => match msg.trailing {
-                            Some(line) => {
-                                let mut state = self.state.lock().unwrap();
-                                match &mut state.details.body {
-                                    Some(body) => {
+                        "BODY" => {
+                            let reset = msg.arguments.first().is_some_and(|a| a.to_uppercase() == "RST");
+                            match msg.trailing {
+                                Some(line) => {
+                                    let mut state = self.state.lock().unwrap();
+                                    if let Some(body) = &mut state.details.body && !reset {
                                         body.push_str(&line);
                                         body.push('\n');
-                                    },
-                                    None => state.details.body = Some(format!("{line}\n")),
+                                    } else {
+                                        state.details.body = Some(format!("{line}\n"))
+                                    }
                                 }
+                                None => {
+                                    if reset {
+                                        self.state.lock().unwrap().details.body = None;
+                                    } else {
+                                        self.write(&protocol::reply(
+                                            msg.id,
+                                            false,
+                                            "BODY",
+                                            vec!["MISSING_TRAILING"],
+                                            None,
+                                        ))?
+                                    }
+                                },
                             }
-                            None => self.write(&protocol::reply(
-                                msg.id,
-                                false,
-                                "BODY",
-                                vec!["MISSING_TRAILING"],
-                                None,
-                            ))?,
                         },
                         "SEND" => {
                             let mut details = self.state.lock().unwrap().details.clone();
