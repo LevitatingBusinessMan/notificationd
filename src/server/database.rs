@@ -1,11 +1,8 @@
 use anyhow::anyhow;
-use nix::libc::rusage;
 use rusqlite::Connection;
 use rusqlite::params;
-use zbus::zvariant::Str;
 
 use crate::notifications;
-use crate::notifications::NotificationDetails;
 
 pub fn setup_database(db: &mut Connection) -> rusqlite::Result<usize> {
     let n = db.execute(

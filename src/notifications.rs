@@ -1,4 +1,3 @@
-use std::sync::atomic::AtomicU32;
 
 #[derive(Debug, Clone)]
 pub struct NotificationDetails {

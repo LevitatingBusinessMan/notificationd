@@ -9,7 +9,6 @@ use nom::bytes::complete::take_while;
 use nom::character::complete::char;
 use nom::character::complete::digit1;
 use nom::character::complete::space1;
-use nom::combinator::map;
 use nom::combinator::map_res;
 use nom::combinator::opt;
 use nom::multi::many0;

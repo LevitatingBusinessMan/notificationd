@@ -1,15 +1,10 @@
 use anyhow;
 use std::io;
 use std::io::BufRead;
-use std::io::BufReader;
 use std::net::TcpListener;
-use std::net::TcpStream;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::atomic::AtomicU32;
 use std::sync::atomic::AtomicUsize;
-use std::sync::mpsc;
-use std::thread;
 
 use client::ClientHandle;
 

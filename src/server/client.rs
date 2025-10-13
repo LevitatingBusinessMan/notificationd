@@ -1,4 +1,3 @@
-use std::fmt::format;
 use std::io;
 use std::io::BufReader;
 use std::io::prelude::*;
@@ -8,18 +7,14 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc;
 use std::thread;
-use std::time::Duration;
 
 use crate::notifications;
 use crate::protocol;
 use crate::protocol::parser;
-use crate::protocol::parser::Message;
 use crate::server;
 use crate::server::ServerHandle;
 use crate::server::database::DatabaseExt;
-use anyhow::anyhow;
 use notifications::NotificationDetails;
-use zbus::address::transport::Tcp;
 
 pub struct ClientState {
     pub name: Option<String>,
