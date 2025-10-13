@@ -90,7 +90,7 @@ pub fn main(bind: String) -> anyhow::Result<()> {
         None
     };
 
-    let listener = TcpListener::bind("127.0.0.1:6606")?;
+    let listener = TcpListener::bind(&bind)?;
     println!("Listening on {}", bind);
 
     let server_handle = ServerHandle::new(server_state);
