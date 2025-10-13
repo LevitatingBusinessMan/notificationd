@@ -15,8 +15,8 @@ use crate::protocol;
 use crate::protocol::parser;
 use crate::protocol::parser::Message;
 use crate::server;
-use crate::server::database::DatabaseExt;
 use crate::server::ServerHandle;
+use crate::server::database::DatabaseExt;
 use anyhow::anyhow;
 use notifications::NotificationDetails;
 use zbus::address::transport::Tcp;
@@ -178,13 +178,18 @@ impl ClientHandle {
                                 vec!["MISSING_TRAILING"],
                                 None,
                             ))?,
-                        },
+                        }
                         "BODY" => {
-                            let reset = msg.arguments.first().is_some_and(|a| a.to_uppercase() == "RST");
+                            let reset = msg
+                                .arguments
+                                .first()
+                                .is_some_and(|a| a.to_uppercase() == "RST");
                             match msg.trailing {
                                 Some(line) => {
                                     let mut state = self.state.lock().unwrap();
-                                    if let Some(body) = &mut state.details.body && !reset {
+                                    if let Some(body) = &mut state.details.body
+                                        && !reset
+                                    {
                                         body.push_str(&line);
                                         body.push('\n');
                                     } else {
@@ -203,9 +208,9 @@ impl ClientHandle {
                                             None,
                                         ))?
                                     }
-                                },
+                                }
                             }
-                        },
+                        }
                         "SEND" => {
                             let mut details = self.state.lock().unwrap().details.clone();
                             details.user = Some(user.clone());
@@ -215,8 +220,12 @@ impl ClientHandle {
                                     Ok(n) => {
                                         details.id = Some(db.last_insert_rowid() as usize);
                                         server::set_id(details.id.unwrap());
-                                        println!("Saved {}, {} row affected", details.id.unwrap(), n);
-                                    },
+                                        println!(
+                                            "Saved {}, {} row affected",
+                                            details.id.unwrap(),
+                                            n
+                                        );
+                                    }
                                     Err(e) => println!("Error saving {}: {e}", details.id.unwrap()),
                                 }
                             }
@@ -225,7 +234,8 @@ impl ClientHandle {
                                 details.id = Some(server::next_id());
                             }
 
-                            let mut notify_msg = format!("$NOTIFY_START {} {}\r\n", user, details.id.unwrap());
+                            let mut notify_msg =
+                                format!("$NOTIFY_START {} {}\r\n", user, details.id.unwrap());
 
                             if let Some(title) = details.title {
                                 notify_msg += &format!("$TITLE: {}\r\n", title)
@@ -255,15 +265,20 @@ impl ClientHandle {
                         "RESET" => {
                             self.state.lock().unwrap().details = NotificationDetails::new();
                         }
-                        "VERSION" => self.write(&protocol::reply(
-                            msg.id,
-                            true,
-                            "VERSION",
-                            vec![env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")],
-                            None,
-                        ))?,
+                        "VERSION" => {
+                            self.write(&protocol::reply(
+                                msg.id,
+                                true,
+                                "VERSION",
+                                vec![env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")],
+                                None,
+                            ))?
+                        }
                         "CONSUME" => {
-                            let arg = &msg.arguments.first().map_or(String::from("on"), |a| a.to_lowercase());
+                            let arg = &msg
+                                .arguments
+                                .first()
+                                .map_or(String::from("on"), |a| a.to_lowercase());
 
                             if arg == "on" || arg == "true" {
                                 self.state.lock().unwrap().consume = true;
@@ -295,33 +310,51 @@ impl ClientHandle {
                         }
                         "QUIT" => {
                             self.stream.shutdown(std::net::Shutdown::Both)?;
-                        },
+                        }
                         "HISTORY" => {
                             if let Some(db) = &mut self.server.state.lock().unwrap().db {
                                 if let Ok(notifications) = NotificationDetails::load_all(db) {
                                     let mut replies = vec![];
                                     for notifications in notifications {
-                                        replies.push(protocol::reply(msg.id, true, "HISTORY", vec![
-                                            &notifications.id.unwrap().to_string(),
-                                            &notifications.user.unwrap().to_string(),
-                                        ], Some(&notifications.timestamp.unwrap().to_string())));
+                                        replies.push(protocol::reply(
+                                            msg.id,
+                                            true,
+                                            "HISTORY",
+                                            vec![
+                                                &notifications.id.unwrap().to_string(),
+                                                &notifications.user.unwrap().to_string(),
+                                            ],
+                                            Some(&notifications.timestamp.unwrap().to_string()),
+                                        ));
 
                                         if let Some(title) = notifications.title {
-                                            replies.push(protocol::reply(msg.id, true, "HISTORY", vec![
-                                                "TITLE"
-                                            ], Some(&title)));
+                                            replies.push(protocol::reply(
+                                                msg.id,
+                                                true,
+                                                "HISTORY",
+                                                vec!["TITLE"],
+                                                Some(&title),
+                                            ));
                                         }
 
                                         if !notifications.tags.is_empty() {
-                                            replies.push(protocol::reply(msg.id, true, "HISTORY", vec![
-                                                "TAGS"
-                                            ], Some(&notifications.tags.join(" "))));
+                                            replies.push(protocol::reply(
+                                                msg.id,
+                                                true,
+                                                "HISTORY",
+                                                vec!["TAGS"],
+                                                Some(&notifications.tags.join(" ")),
+                                            ));
                                         }
                                         if let Some(body) = notifications.body {
                                             for line in body.lines() {
-                                                replies.push(protocol::reply(msg.id, true, "HISTORY", vec![
-                                                    "BODY"
-                                                ], Some(line)));
+                                                replies.push(protocol::reply(
+                                                    msg.id,
+                                                    true,
+                                                    "HISTORY",
+                                                    vec!["BODY"],
+                                                    Some(line),
+                                                ));
                                             }
                                         }
                                         self.write(&replies.join(""))?;
@@ -344,7 +377,7 @@ impl ClientHandle {
                                     None,
                                 ))?
                             }
-                        },
+                        }
                         "WHO" => {
                             for client in &self.server.state.lock().unwrap().clients {
                                 let state = client.state.lock().unwrap();
@@ -362,14 +395,8 @@ impl ClientHandle {
                                     ))?
                                 }
                             }
-                            self.write(&protocol::reply(
-                                msg.id,
-                                true,
-                                "WHO",
-                                vec!["END"],
-                                None,
-                            ))?;
-                        },
+                            self.write(&protocol::reply(msg.id, true, "WHO", vec!["END"], None))?;
+                        }
                         _ => self.write(&protocol::reply(
                             msg.id,
                             false,

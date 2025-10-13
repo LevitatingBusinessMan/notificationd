@@ -39,7 +39,11 @@ pub fn main(connect: String) -> anyhow::Result<()> {
                 details = Some(NotificationDetails::new());
                 if let Some(ref mut details) = details {
                     details.user = msg.arguments.first().cloned();
-                    details.id = msg.arguments.get(1).cloned().map(|s| s.parse::<usize>().unwrap());
+                    details.id = msg
+                        .arguments
+                        .get(1)
+                        .cloned()
+                        .map(|s| s.parse::<usize>().unwrap());
                 }
             }
             "TITLE" => {
@@ -53,7 +57,10 @@ pub fn main(connect: String) -> anyhow::Result<()> {
                         body.push_str(&msg.trailing.unwrap());
                         body.push('\n');
                     } else {
-                        details.body = msg.trailing.map(|mut s| { s.push('\n'); s });
+                        details.body = msg.trailing.map(|mut s| {
+                            s.push('\n');
+                            s
+                        });
                     }
                 }
             }

@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use nix::libc::rusage;
-use rusqlite::params;
 use rusqlite::Connection;
+use rusqlite::params;
 use zbus::zvariant::Str;
 
 use crate::notifications;
@@ -59,9 +59,21 @@ impl DatabaseExt for crate::notifications::NotificationDetails {
                 user: row.get(1)?,
                 title: row.get(2)?,
                 body: row.get(3)?,
-                tags: row.get::<usize, String>(4)?.split(" ").filter_map(|s| if !s.is_empty() { Some(String::from(s)) } else { None }).collect(),
+                tags: row
+                    .get::<usize, String>(4)?
+                    .split(" ")
+                    .filter_map(|s| {
+                        if !s.is_empty() {
+                            Some(String::from(s))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect(),
                 timestamp: row.get(5)?,
             })
-        })?.into_iter().collect()
+        })?
+        .into_iter()
+        .collect()
     }
 }
