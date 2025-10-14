@@ -16,6 +16,8 @@ use crate::protocol;
 pub fn main(connect: String) -> anyhow::Result<()> {
     let hostname = nix::unistd::gethostname()?;
     let hostname = hostname.to_string_lossy();
+    let uid = nix::unistd::getuid();
+    let user = nix::unistd::User::from_uid(nix::unistd::getuid())?.map_or(uid.to_string(), |u| u.name);
 
     let stream = TcpStream::connect(connect)?;
     let mut writer = stream.try_clone()?;
@@ -24,7 +26,8 @@ pub fn main(connect: String) -> anyhow::Result<()> {
     let dbus_session = Connection::session()?;
     let notify_iface = dbus::NotificationsProxyBlocking::new(&dbus_session)?;
 
-    writer.write_all(format!("login {}\r\nconsume\r\n", hostname).as_bytes())?;
+    println!("login {user}@{hostname}\r\nconsume\r\n");
+    writer.write_all(format!("login {user}@{hostname}\r\nconsume\r\n").as_bytes())?;
 
     let mut details = None;
 
