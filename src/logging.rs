@@ -29,7 +29,6 @@ pub fn init() -> anyhow::Result<()> {
                 .with_writer(writer)
     };
 
-    println!("{env:?}");
     let registry = tracing_subscriber::registry()
         .with(env)
         .with(stdout)
