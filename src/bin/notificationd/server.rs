@@ -10,6 +10,7 @@ use client::ClientHandle;
 
 mod client;
 mod database;
+mod varlink;
 
 pub static NOTIFICATION_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -37,7 +38,7 @@ impl ServerState {
 
 #[derive(Clone)]
 pub struct ServerHandle {
-    state: Arc<Mutex<ServerState>>,
+    pub(crate) state: Arc<Mutex<ServerState>>,
 }
 
 impl ServerHandle {
@@ -92,5 +93,8 @@ pub fn main(bind: String) -> anyhow::Result<()> {
     tracing::info!("Listening on {}", bind);
 
     let server_handle = ServerHandle::new(server_state);
+
+    varlink::init(server_handle.clone())?;
+
     Ok(server_handle.listen_incoming(listener)?)
 }

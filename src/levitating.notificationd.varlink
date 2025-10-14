@@ -1,0 +1,3 @@
+interface levitating.notificationd
+
+method Status() -> (connections: int)
