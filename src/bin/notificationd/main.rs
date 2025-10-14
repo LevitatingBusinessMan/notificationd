@@ -2,7 +2,6 @@ use anyhow::Context;
 use clap::Parser;
 
 mod client;
-mod notifications;
 mod protocol;
 mod server;
 mod logging;

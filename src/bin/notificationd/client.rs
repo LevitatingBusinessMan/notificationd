@@ -6,12 +6,14 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
 use std::net::TcpStream;
-mod dbus;
 use zbus::blocking::Connection;
 
+use notificationd::notifications::NotificationDetails;
+
 use crate::client::dbus::NotificationsProxyBlocking;
-use crate::notifications::NotificationDetails;
 use crate::protocol;
+
+mod dbus;
 
 pub fn main(connect: String) -> anyhow::Result<()> {
     let hostname = nix::unistd::gethostname()?;

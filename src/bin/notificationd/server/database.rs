@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use rusqlite::Connection;
 use rusqlite::params;
 
-use crate::notifications;
+use notificationd::notifications::NotificationDetails;
 
 pub fn setup_database(db: &mut Connection) -> rusqlite::Result<usize> {
     let n = db.execute(
@@ -29,7 +29,7 @@ where
     fn load_all(db: &mut Connection) -> rusqlite::Result<Vec<Self>>;
 }
 
-impl DatabaseExt for crate::notifications::NotificationDetails {
+impl DatabaseExt for NotificationDetails {
     type Key = u32;
 
     fn save(&self, db: &mut Connection) -> anyhow::Result<usize> {
@@ -51,7 +51,7 @@ impl DatabaseExt for crate::notifications::NotificationDetails {
     fn load_all(db: &mut Connection) -> rusqlite::Result<Vec<Self>> {
         let mut stmt = db.prepare("SELECT id, user, title, body, tags, datetime(timestamp, 'unixepoch') as timestamp FROM notifications")?;
         stmt.query_map((), |row| {
-            Ok(notifications::NotificationDetails {
+            Ok(NotificationDetails {
                 id: row.get(0)?,
                 user: row.get(1)?,
                 title: row.get(2)?,

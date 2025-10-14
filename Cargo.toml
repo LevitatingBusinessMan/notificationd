@@ -5,6 +5,12 @@ version = "0.2.1"
 edition = "2024"
 license = "MIT"
 
+#[[bin]]
+#name = "notificationd"
+
+#[[bin]]
+#name = "notificationctl"
+
 [dependencies]
 anyhow = "1.0.100"
 clap = { version = "4.5.48", features = ["derive"] }

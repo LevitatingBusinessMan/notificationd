@@ -8,15 +8,12 @@ use std::sync::Mutex;
 use std::sync::mpsc;
 use std::thread;
 
-use crate::logging::LogError;
-use crate::notifications;
+use notificationd::notifications::NotificationDetails;
 use crate::protocol;
 use crate::protocol::parser;
 use crate::server;
 use crate::server::ServerHandle;
 use crate::server::database::DatabaseExt;
-use anyhow::Context;
-use notifications::NotificationDetails;
 
 use tracing::{error, warn, info, debug, trace};
 
