@@ -25,6 +25,7 @@ pub fn init() -> anyhow::Result<()> {
                 .without_time()
                 .with_target(false)
                 .with_thread_names(true)
+                .with_ansi(false)
                 .with_writer(writer)
     };
 
