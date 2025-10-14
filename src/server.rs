@@ -82,14 +82,14 @@ pub fn main(bind: String) -> anyhow::Result<()> {
     server_state.db = if persistence {
         let mut db = rusqlite::Connection::open(db_path)?;
         database::setup_database(&mut db)?;
-        println!("Opened database {db_path}");
+        tracing::info!("Opened database {db_path}");
         Some(db)
     } else {
         None
     };
 
     let listener = TcpListener::bind(&bind)?;
-    println!("Listening on {}", bind);
+    tracing::info!("Listening on {}", bind);
 
     let server_handle = ServerHandle::new(server_state);
     Ok(server_handle.listen_incoming(listener)?)

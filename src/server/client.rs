@@ -8,13 +8,17 @@ use std::sync::Mutex;
 use std::sync::mpsc;
 use std::thread;
 
+use crate::logging::LogError;
 use crate::notifications;
 use crate::protocol;
 use crate::protocol::parser;
 use crate::server;
 use crate::server::ServerHandle;
 use crate::server::database::DatabaseExt;
+use anyhow::Context;
 use notifications::NotificationDetails;
+
+use tracing::{error, warn, info, debug, trace};
 
 pub struct ClientState {
     pub name: Option<String>,
@@ -45,10 +49,11 @@ pub struct ClientHandle {
 impl ClientHandle {
     pub fn new(stream: TcpStream, server: ServerHandle) -> io::Result<Self> {
         let peer = stream.peer_addr()?;
-        let writer = stream.try_clone()?;
-        let reader = BufReader::new(stream.try_clone()?);
+        let write_stream = stream.try_clone()?;
+        let read_stream = BufReader::new(stream.try_clone()?);
         let (tx, rx) = mpsc::channel();
-
+        let write_thread = thread::Builder::new().name(format!("writer {peer}"));
+        let read_thread = thread::Builder::new().name(format!("reader {peer}"));
         let state = Arc::new(Mutex::new(ClientState::new()));
 
         let handle = Self {
@@ -61,20 +66,37 @@ impl ClientHandle {
 
         let handle_clone = handle.clone();
 
-        thread::spawn(move || {
-            Self::writer(writer, rx).expect("Client handle writer error");
-        });
+        debug!("Connection from {peer}");
 
-        thread::spawn(move || {
-            Self::reader(reader, &handle).expect("Client handle writer error");
-        });
+        write_thread.spawn(move || {
+            match Self::writer(write_stream, rx) {
+                Ok(()) => error!("Writer thread returned Ok"),
+                Err(e) => {
+                    if e.downcast_ref::<mpsc::RecvError>().is_some() {
+                        trace!("all senders were dropped");
+                    } else {
+                        warn!("{e:#?}")
+                    }
+                }
+            }
+        }).unwrap();
+
+        read_thread.spawn(move || {
+            match Self::reader(read_stream, &handle) {
+                Ok(()) => debug!("Connection closed"),
+                Err(e) => warn!("{e}"),
+            }
+            handle.remove();
+        }).unwrap();
 
         Ok(handle_clone)
     }
 
+    /// The reader thread
     fn reader(reader: BufReader<TcpStream>, handle: &ClientHandle) -> anyhow::Result<()> {
         for line in reader.lines() {
             let line = line?;
+            trace!("received: {line}");
             match parser::line(&line, false) {
                 Ok((_remaining, msg)) => handle.handle_message(msg)?,
                 Err(e) => handle.write(&format!("-ERR PARSE: {e}\r\n"))?,
@@ -83,6 +105,7 @@ impl ClientHandle {
         Ok(())
     }
 
+    /// The writer thread
     fn writer(mut writer: TcpStream, rx: mpsc::Receiver<String>) -> anyhow::Result<()> {
         loop {
             let str = rx.recv()?;
@@ -92,6 +115,17 @@ impl ClientHandle {
 
     pub fn write(&self, msg: &str) -> Result<(), mpsc::SendError<String>> {
         self.write_channel.send(msg.to_owned())
+    }
+
+    /// remove its copy in the server, consuming self
+    pub fn remove(self) {
+        let mut server_state = self.server.state.lock().unwrap();
+        let i = server_state.clients.iter().position(|c| Arc::ptr_eq(&c.state, &self.state));
+        if let Some(i) = i {
+            server_state.clients.remove(i);
+        } else {
+            warn!("client handler already removed")
+        }
     }
 
     // to return an error here means to kill the connection
@@ -143,7 +177,7 @@ impl ClientHandle {
                                     vec![],
                                     Some(&format!("Welcome {}", user)),
                                 ))?;
-                                println!("{} logged in as {}", self.peer, user);
+                                debug!("user {user} logged in");
                             }
                         };
                     }
