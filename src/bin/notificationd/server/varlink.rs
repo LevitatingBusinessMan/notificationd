@@ -1,4 +1,4 @@
-use std::{env, io};
+use std::{env, io, path::Path};
 use varlink::*;
 use notificationd::levitating_notificationd::{self, *};
 use tracing::{error, warn, info, debug, trace};
@@ -20,11 +20,16 @@ impl VarlinkInterface for LevitatingNotificationd {
 
 fn addres() -> String {
     let dir = env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
+        let runtime_dir = if Path::new("/run").exists() {
+            "/run"
+        } else {
+            "/var/run"
+        };
         let uid: nix::unistd::Uid = nix::unistd::getuid();
         if uid.is_root() {
-            "/run/".to_owned()
+            runtime_dir.to_owned()
         } else {
-            format!("/run/user/{}", uid.as_raw())
+            format!("/{runtime_dir}/user/{}", uid.as_raw())
         }
     });
     format!("unix:{dir}/{SOCKET_NAME}")
