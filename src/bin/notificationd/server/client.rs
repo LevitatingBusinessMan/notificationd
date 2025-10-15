@@ -13,7 +13,7 @@ use crate::protocol;
 use crate::protocol::parser;
 use crate::server;
 use crate::server::ServerHandle;
-use crate::server::database::DatabaseExt;
+use crate::server::database::NotificationDetailsDatabaseExt;
 
 use tracing::{error, warn, info, debug, trace};
 
@@ -126,6 +126,7 @@ impl ClientHandle {
     }
 
     // to return an error here means to kill the connection
+    //#[tracing::instrument(skip_all, fields(cmd=msg.command)]
     pub fn handle_message(&self, msg: protocol::parser::Message) -> anyhow::Result<()> {
         if msg.sign.is_some() {
             self.write(&protocol::reply(
@@ -339,60 +340,79 @@ impl ClientHandle {
                         }
                         "HISTORY" => {
                             if let Some(db) = &mut self.server.state.lock().unwrap().db {
-                                if let Ok(notifications) = NotificationDetails::load_all(db) {
-                                    let mut replies = vec![];
-                                    for notifications in notifications {
-                                        replies.push(protocol::reply(
+                                let limit = msg.arguments.first().map(|s| s.parse::<u32>()).transpose();
+                                match limit {
+                                    Err(_) => {
+                                        self.write(&protocol::reply(
                                             msg.id,
-                                            true,
+                                            false,
                                             "HISTORY",
-                                            vec![
-                                                &notifications.id.unwrap().to_string(),
-                                                &notifications.user.unwrap().to_string(),
-                                            ],
-                                            Some(&notifications.timestamp.unwrap().to_string()),
-                                        ));
+                                            vec!["INVALID_ARG"],
+                                            None,
+                                        ))?
+                                    },
+                                    Ok(limit) => {
+                                        match NotificationDetails::load_all(db, limit) {
+                                            Ok(notifications) => {
+                                                let mut replies = vec![];
+                                                debug!("{}", notifications.len());
+                                                for notifications in notifications {
+                                                    replies.push(protocol::reply(
+                                                        msg.id,
+                                                        true,
+                                                        "HISTORY",
+                                                        vec![
+                                                            &notifications.id.unwrap().to_string(),
+                                                            &notifications.user.unwrap().to_string(),
+                                                        ],
+                                                        Some(&notifications.timestamp.unwrap().to_string()),
+                                                    ));
 
-                                        if let Some(title) = notifications.title {
-                                            replies.push(protocol::reply(
-                                                msg.id,
-                                                true,
-                                                "HISTORY",
-                                                vec!["TITLE"],
-                                                Some(&title),
-                                            ));
-                                        }
+                                                    if let Some(title) = notifications.title {
+                                                        replies.push(protocol::reply(
+                                                            msg.id,
+                                                            true,
+                                                            "HISTORY",
+                                                            vec!["TITLE"],
+                                                            Some(&title),
+                                                        ));
+                                                    }
 
-                                        if !notifications.tags.is_empty() {
-                                            replies.push(protocol::reply(
-                                                msg.id,
-                                                true,
-                                                "HISTORY",
-                                                vec!["TAGS"],
-                                                Some(&notifications.tags.join(" ")),
-                                            ));
-                                        }
-                                        if let Some(body) = notifications.body {
-                                            for line in body.lines() {
-                                                replies.push(protocol::reply(
+                                                    if !notifications.tags.is_empty() {
+                                                        replies.push(protocol::reply(
+                                                            msg.id,
+                                                            true,
+                                                            "HISTORY",
+                                                            vec!["TAGS"],
+                                                            Some(&notifications.tags.join(" ")),
+                                                        ));
+                                                    }
+                                                    if let Some(body) = notifications.body {
+                                                        for line in body.lines() {
+                                                            replies.push(protocol::reply(
+                                                                msg.id,
+                                                                true,
+                                                                "HISTORY",
+                                                                vec!["BODY"],
+                                                                Some(line),
+                                                            ));
+                                                        }
+                                                    }
+                                                }
+                                                self.write(&replies.join(""))?;
+                                            }
+                                            Err(e) => {
+                                                error!("db failure: {e}");
+                                                self.write(&protocol::reply(
                                                     msg.id,
-                                                    true,
+                                                    false,
                                                     "HISTORY",
-                                                    vec!["BODY"],
-                                                    Some(line),
-                                                ));
+                                                    vec!["DB_FAIL"],
+                                                    Some(&format!("{e}")),
+                                                ))?
                                             }
                                         }
-                                        self.write(&replies.join(""))?;
-                                    }
-                                } else {
-                                    self.write(&protocol::reply(
-                                        msg.id,
-                                        false,
-                                        "HISTORY",
-                                        vec!["DB_FAIL"],
-                                        None,
-                                    ))?
+                                    },
                                 }
                             } else {
                                 self.write(&protocol::reply(
