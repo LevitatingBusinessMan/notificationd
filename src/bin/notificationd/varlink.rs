@@ -5,16 +5,24 @@ use tracing::{error, warn, info, debug, trace};
 
 use crate::server::ServerHandle;
 
-struct LevitatingNotificationd {
-    server: ServerHandle,
+struct VarlinkClientInfo {
+    login: String,
+    consume: bool,
+    server: String,
+}
+
+struct VarlinkHandles {
+    server: Option<ServerHandle>,
+    client: Option<VarlinkClientInfo>,
 }
 
 pub const SOCKET_NAME: &'static str = "levitating.notificationd";
 
-impl VarlinkInterface for LevitatingNotificationd {
+impl VarlinkInterface for VarlinkHandles {
     fn status(&self, call: &mut dyn Call_Status) -> varlink::Result<()> {
-        let state = self.server.state.lock().unwrap();
-        return call.reply(state.clients.len() as i64);
+        todo!()
+        // let state = self.server.state.lock().unwrap();
+        //return call.reply(state.clients.len() as i64);
     }
 }
 
@@ -35,8 +43,8 @@ fn addres() -> String {
     format!("unix:{dir}/{SOCKET_NAME}")
 }
 
-pub fn init(server: ServerHandle) -> io::Result<()> {
-    let interface = levitating_notificationd::new(Box::new(LevitatingNotificationd {server}));
+pub fn init(server: Option<ServerHandle>) -> io::Result<()> {
+    let interface = levitating_notificationd::new(Box::new(VarlinkHandles {server}));
     let service = varlink::VarlinkService::new("levitating", "notificationd.service", env!("CARGO_PKG_VERSION"), "https//github.com/LevitatingBusinessMan/notificationd", vec![Box::new(interface)]);
     let config = varlink::ListenConfig::default();
     let thread = std::thread::Builder::new().name(String::from("varlink"));

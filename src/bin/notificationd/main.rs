@@ -5,6 +5,7 @@ mod client;
 mod protocol;
 mod server;
 mod logging;
+mod varlink;
 
 #[derive(Parser)]
 struct Args {

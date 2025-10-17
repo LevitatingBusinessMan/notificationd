@@ -10,7 +10,6 @@ use client::ClientHandle;
 
 mod client;
 mod database;
-mod varlink;
 
 pub static NOTIFICATION_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -94,7 +93,7 @@ pub fn main(bind: String) -> anyhow::Result<()> {
 
     let server_handle = ServerHandle::new(server_state);
 
-    varlink::init(server_handle.clone())?;
+    crate::varlink::init(Some(server_handle.clone()))?;
 
     Ok(server_handle.listen_incoming(listener)?)
 }

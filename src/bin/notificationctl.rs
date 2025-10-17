@@ -19,18 +19,32 @@ enum Command {
 struct Cli {
     #[command(subcommand)]
     command: Command,
-    #[arg(long, value_hint=ValueHint::Url)]
-    address: Option<String>,
+    #[arg(long)]
+    user: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let addr = cli.address.unwrap_or("unix:/run/user/1000/levitating.notificationd".to_owned());
+    let addr = if cli.user {
+        "unix:/run/user/1000/levitating.notificationd"
+    } else {
+        "unix:/run/levitating.notificationd"
+    };
     match cli.command {
         Command::Status => {
-            let mut client = connect(&addr)?;
+            let mut client = connect(addr)?;
             let status = client.status().call()?;
-            println!("Connections: {}", status.connections);
+            if let Some(server) = status.server {
+                println!("Mode: server");
+                println!("Connections: {}", server.connections);
+                println!("Bind: {}", server.bind);
+            }
+            if let Some(client) = status.client {
+                println!("Mode: client");
+                println!("Server: {}", client.server);
+                println!("Login: {}", client.login);
+                println!("Consume: {}", client.consume);
+            }
         }
     }
     Ok(())

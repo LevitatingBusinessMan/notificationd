@@ -1,3 +1,17 @@
 interface levitating.notificationd
 
-method Status() -> (connections: int)
+type Mode (Server, Client)
+
+type Server (
+    bind: string,
+    connections: int,
+    db: bool
+)
+
+type Client (
+    server: string,
+    login: string,
+    consume: bool
+)
+
+method Status() -> (server: ?Server, client: ?Client)
