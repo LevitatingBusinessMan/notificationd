@@ -34,6 +34,7 @@ fn main() -> anyhow::Result<()> {
         Command::Status => {
             let mut client = connect(addr)?;
             let status = client.status().call()?;
+            println!("Socket: {addr}");
             if let Some(server) = status.server {
                 println!("Mode: server");
                 println!("Connections: {}", server.connections);

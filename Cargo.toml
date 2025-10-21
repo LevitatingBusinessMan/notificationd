@@ -23,7 +23,7 @@ serde_derive = "1.0.228"
 syslog-tracing = "0.3.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
-varlink = { git = "https://github.com/varlink/rust.git" }
+varlink = "13.0.0"
 zbus = "5.11.0"
 
 [build-dependencies]

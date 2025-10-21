@@ -37,12 +37,16 @@ impl ServerState {
 
 #[derive(Clone)]
 pub struct ServerHandle {
-    pub(crate) state: Arc<Mutex<ServerState>>,
+    /// Address this server is bound at
+    pub bind: Arc<String>,
+    /// Mutable state of the server
+    pub(self) state: Arc<Mutex<ServerState>>,
 }
 
 impl ServerHandle {
-    pub fn new(state: ServerState) -> Self {
+    pub fn new(addr: String, state: ServerState) -> Self {
         Self {
+            bind: Arc::new(addr),
             state: Arc::new(Mutex::new(state)),
         }
     }
@@ -73,6 +77,12 @@ impl ServerHandle {
             self.add_client(ClientHandle::new(stream, self.clone())?);
         }
     }
+    pub fn clients_len(&self) -> usize {
+        self.state.lock().unwrap().clients.len()
+    }
+    pub fn has_db(&self) -> bool {
+        self.state.lock().unwrap().db.is_some()
+    }
 }
 
 pub fn main(bind: String) -> anyhow::Result<()> {
@@ -91,7 +101,7 @@ pub fn main(bind: String) -> anyhow::Result<()> {
     let listener = TcpListener::bind(&bind)?;
     tracing::info!("Listening on {}", bind);
 
-    let server_handle = ServerHandle::new(server_state);
+    let server_handle = ServerHandle::new(bind, server_state);
 
     crate::varlink::init(Some(server_handle.clone()))?;
 

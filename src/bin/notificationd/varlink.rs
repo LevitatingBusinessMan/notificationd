@@ -5,7 +5,7 @@ use tracing::{error, warn, info, debug, trace};
 
 use crate::server::ServerHandle;
 
-struct VarlinkClientInfo {
+struct VarlinkClientHandles {
     login: String,
     consume: bool,
     server: String,
@@ -13,16 +13,21 @@ struct VarlinkClientInfo {
 
 struct VarlinkHandles {
     server: Option<ServerHandle>,
-    client: Option<VarlinkClientInfo>,
+    //client: Option<VarlinkClientHandles>,
 }
 
 pub const SOCKET_NAME: &'static str = "levitating.notificationd";
 
 impl VarlinkInterface for VarlinkHandles {
     fn status(&self, call: &mut dyn Call_Status) -> varlink::Result<()> {
-        todo!()
-        // let state = self.server.state.lock().unwrap();
-        //return call.reply(state.clients.len() as i64);
+        let server = self.server.as_ref().map(|sh| {
+            Server {
+                bind: self.server.as_ref().unwrap().bind.to_string(),
+                connections: sh.clients_len() as i64,
+                db: sh.has_db()
+            }
+        });
+        return  call.reply(server, None);
     }
 }
 

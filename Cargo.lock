@@ -1077,8 +1077,9 @@ checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "varlink"
-version = "11.0.1"
-source = "git+https://github.com/varlink/rust.git#30e0a81cf20f7a7c2f56dd11ec5e7e2e8ebb428f"
+version = "13.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06c4fb29c00c9a3aedd6352a55611d9bfca85787ac7ec24d085aa2ddab756662"
 dependencies = [
  "libc",
  "serde",
