@@ -34,6 +34,7 @@ impl VarlinkInterface for VarlinkHandles {
             let v = sh.who().iter().map(|(login, socket, consume)| WhoClient {
                 login: login.to_string(),
                 consume: *consume,
+                address: socket.to_string(),
             }).collect();
             return call.reply(v);
         } else {

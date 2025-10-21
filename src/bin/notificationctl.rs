@@ -13,6 +13,8 @@ use varlink::Connection;
 #[derive(clap::Subcommand)]
 enum Command {
     Status,
+	// Show connected clients
+	Who,
 }
 
 #[derive(Parser)]
@@ -34,7 +36,7 @@ fn main() -> anyhow::Result<()> {
         Command::Status => {
             let mut client = connect(addr)?;
             let status = client.status().call()?;
-            println!("Socket: {addr}");
+            println!("Local socket: {addr}");
             if let Some(server) = status.server {
                 println!("Mode: server");
                 println!("Connections: {}", server.connections);
@@ -46,7 +48,15 @@ fn main() -> anyhow::Result<()> {
                 println!("Login: {}", client.login);
                 println!("Consume: {}", client.consume);
             }
-        }
+        },
+        Command::Who => {
+            let mut client = connect(addr)?;
+            let who = client.who().call()?;
+            println!("Connected clients:");
+            for c in who.clients {
+                println!("{} {} {}", c.login, if c.consume { "CONSUME" } else { &" ".repeat("CONSUME".len()) }, c.address);
+            }
+        },
     }
     Ok(())
 }
