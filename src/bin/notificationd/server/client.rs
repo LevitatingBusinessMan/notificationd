@@ -355,7 +355,6 @@ impl ClientHandle {
                                         match NotificationDetails::load_all(db, limit) {
                                             Ok(notifications) => {
                                                 let mut replies = vec![];
-                                                debug!("{}", notifications.len());
                                                 for notifications in notifications {
                                                     replies.push(protocol::reply(
                                                         msg.id,
