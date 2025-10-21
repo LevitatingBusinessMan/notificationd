@@ -21,13 +21,24 @@ pub const SOCKET_NAME: &'static str = "levitating.notificationd";
 impl VarlinkInterface for VarlinkHandles {
     fn status(&self, call: &mut dyn Call_Status) -> varlink::Result<()> {
         let server = self.server.as_ref().map(|sh| {
-            Server {
+            ServerStatus {
                 bind: self.server.as_ref().unwrap().bind.to_string(),
                 connections: sh.clients_len() as i64,
                 db: sh.has_db()
             }
         });
         return  call.reply(server, None);
+    }
+    fn who(&self, call: &mut dyn Call_Who) -> varlink::Result<()> {
+        if let Some(sh) = &self.server {
+            let v = sh.who().iter().map(|(login, socket, consume)| WhoClient {
+                login: login.to_string(),
+                consume: *consume,
+            }).collect();
+            return call.reply(v);
+        } else {
+            return call.reply(vec![]);
+        }
     }
 }
 

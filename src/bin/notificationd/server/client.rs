@@ -424,6 +424,20 @@ impl ClientHandle {
                             }
                         }
                         "WHO" => {
+                            for (login, peer, consume) in self.server.who() {
+                                    let args = if consume {
+                                        vec![login.as_ref(), "CONSUME"]
+                                    } else {
+                                        vec![login.as_ref()]
+                                    };
+                                    self.write(&protocol::reply(
+                                        msg.id,
+                                        true,
+                                        "WHO",
+                                        args,
+                                        Some(&peer.to_string()),
+                                    ))? 
+                            }
                             for client in &self.server.state.lock().unwrap().clients {
                                 let state = client.state.lock().unwrap();
                                 if let Some(login) = &state.name {

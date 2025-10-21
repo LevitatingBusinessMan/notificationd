@@ -2,16 +2,25 @@ interface levitating.notificationd
 
 type Mode (Server, Client)
 
-type Server (
+type ServerStatus (
     bind: string,
     connections: int,
     db: bool
 )
 
-type Client (
+type ClientStatus (
     server: string,
     login: string,
     consume: bool
 )
 
-method Status() -> (server: ?Server, client: ?Client)
+method Status() -> (server: ?ServerStatus, client: ?ClientStatus)
+
+type WhoClient (
+    login: string,
+    consume: bool
+    # And I guess the peer, which is trailing,
+    # was that part of the spec?
+)
+
+method Who() -> (clients: []WhoClient)

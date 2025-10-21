@@ -83,6 +83,16 @@ impl ServerHandle {
     pub fn has_db(&self) -> bool {
         self.state.lock().unwrap().db.is_some()
     }
+    pub fn who(&self) -> Vec<(String, std::net::SocketAddr, bool)> {
+        let mut v = vec![];
+        for client in &self.state.lock().unwrap().clients {
+            let state = client.state.lock().unwrap();
+            if let Some(login) = &state.name {
+                v.push((login.to_string(), client.peer, state.consume));
+            }
+        }
+        return v;
+    }
 }
 
 pub fn main(bind: String) -> anyhow::Result<()> {
