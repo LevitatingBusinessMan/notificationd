@@ -1,0 +1,8 @@
+[Unit]
+Description=notificationd client to sync freedesktop notifications
+
+[Service]
+ExecStart=%h/.cargo/bin/notificationd --client critter.levitati.ng:6606
+Restart=always
+RestartSteps=10
+RestartMaxDelaySec=1h
