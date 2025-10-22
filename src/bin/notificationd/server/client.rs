@@ -438,22 +438,6 @@ impl ClientHandle {
                                         Some(&peer.to_string()),
                                     ))? 
                             }
-                            for client in &self.server.state.lock().unwrap().clients {
-                                let state = client.state.lock().unwrap();
-                                if let Some(login) = &state.name {
-                                    let mut args = vec![login.as_ref()];
-                                    if state.consume {
-                                        args.push("CONSUME");
-                                    }
-                                    self.write(&protocol::reply(
-                                        msg.id,
-                                        true,
-                                        "WHO",
-                                        args,
-                                        Some(&client.peer.to_string()),
-                                    ))?
-                                }
-                            }
                             self.write(&protocol::reply(msg.id, true, "WHO", vec!["END"], None))?;
                         }
                         _ => self.write(&protocol::reply(
