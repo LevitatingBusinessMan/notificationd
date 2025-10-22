@@ -41,35 +41,20 @@ impl VarlinkInterface for VarlinkHandles {
     }
 }
 
-fn addres() -> String {
-    let dir = env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
-        let runtime_dir = if Path::new("/run").exists() {
-            "/run"
-        } else {
-            "/var/run"
-        };
-        let uid: nix::unistd::Uid = nix::unistd::getuid();
-        if uid.is_root() {
-            runtime_dir.to_owned()
-        } else {
-            format!("/{runtime_dir}/user/{}", uid.as_raw())
-        }
-    });
-    format!("unix:{dir}/{SOCKET_NAME}")
-}
-
 pub fn init(server: Option<ServerHandle>) -> io::Result<()> {
     let interface = levitating_notificationd::new(Box::new(VarlinkHandles {server}));
     let service = varlink::VarlinkService::new("levitating", "notificationd.service", env!("CARGO_PKG_VERSION"), "https//github.com/LevitatingBusinessMan/notificationd", vec![Box::new(interface)]);
     let config = varlink::ListenConfig::default();
     let thread = std::thread::Builder::new().name(String::from("varlink"));
+    let address = levitating_notificationd::address(nix::unistd::Uid::current());
+    let address_clone = address.clone();
 
     thread.spawn(move || {
-        let res = varlink::listen(service, &addres(), &config);
+        let res = varlink::listen(service, &address, &config);
         error!("listener quit: {res:?}");
     })?;
 
-    info!("Varlink initialized on {}", addres());
+    info!("Varlink initialized on {}", address_clone);
 
     Ok(())
 }
