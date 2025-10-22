@@ -21,4 +21,4 @@ varlink = "13.0.0"
 zbus = "5.11.0"
 
 [build-dependencies]
-varlink_generator = "10.1.0"
+varlink_generator = "13.0.0"
