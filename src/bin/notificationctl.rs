@@ -27,14 +27,15 @@ struct Cli {
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let addr = if cli.user {
-        "unix:/run/user/1000/levitating.notificationd"
+    let uid = if cli.user {
+      nix::unistd::getuid()  
     } else {
-        "unix:/run/levitating.notificationd"
+        nix::unistd::Uid::from_raw(0)
     };
+    let addr = levitating_notificationd::address(uid);
     match cli.command {
         Command::Status => {
-            let mut client = connect(addr)?;
+            let mut client = connect(&addr)?;
             let status = client.status().call()?;
             println!("Local socket: {addr}");
             if let Some(server) = status.server {
@@ -50,7 +51,7 @@ fn main() -> anyhow::Result<()> {
             }
         },
         Command::Who => {
-            let mut client = connect(addr)?;
+            let mut client = connect(&addr)?;
             let who = client.who().call()?;
             println!("Connected clients:");
             for c in who.clients {

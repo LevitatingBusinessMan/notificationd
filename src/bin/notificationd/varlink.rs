@@ -16,8 +16,6 @@ struct VarlinkHandles {
     //client: Option<VarlinkClientHandles>,
 }
 
-pub const SOCKET_NAME: &'static str = "levitating.notificationd";
-
 impl VarlinkInterface for VarlinkHandles {
     fn status(&self, call: &mut dyn Call_Status) -> varlink::Result<()> {
         let server = self.server.as_ref().map(|sh| {
