@@ -2,7 +2,9 @@
 Description=notificationd client to sync freedesktop notifications
 
 [Service]
+Type=notify
 ExecStart=%h/.cargo/bin/notificationd --client critter.levitati.ng:6606
+TimeoutStartSec=5s
 Restart=always
 RestartSteps=10
 RestartMaxDelaySec=1h

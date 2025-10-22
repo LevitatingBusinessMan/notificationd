@@ -1,14 +1,9 @@
-use std::path::Path;
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::RwLock;
-
 use anyhow::Context;
 use clap::Parser;
-use clap::ValueHint;
 use notificationd::levitating_notificationd;
 use notificationd::levitating_notificationd::VarlinkClientInterface;
 use varlink::Connection;
+use sd_notify;
 
 #[derive(clap::Subcommand)]
 enum Command {

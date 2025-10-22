@@ -28,15 +28,15 @@ pub fn main(connect: String) -> anyhow::Result<()> {
     let dbus_session = Connection::session()?;
     let notify_iface = dbus::NotificationsProxyBlocking::new(&dbus_session)?;
 
-    println!("login {user}@{hostname}\r\nconsume\r\n");
     writer.write_all(format!("login {user}@{hostname}\r\nconsume\r\n").as_bytes())?;
+
+    let mut login_confirmation = false;
 
     let mut details = None;
 
     for line in reader.lines() {
         let line = line?;
         println!("{}", line);
-        //if line.is_empty() { continue }
         let (_, msg) = protocol::parser::line(&line, false).unwrap();
         let cmd = msg.command.to_uppercase();
         match cmd.as_ref() {
@@ -74,7 +74,13 @@ pub fn main(connect: String) -> anyhow::Result<()> {
                     let _ = display(details, &notify_iface)?;
                 }
                 details = None;
-            }
+            },
+            "LOGIN" => {
+                if msg.sign == Some('+') && !login_confirmation {
+                    login_confirmation = true;
+                    sd_notify::notify(false, &[sd_notify::NotifyState::Ready])?;
+                }
+            },
             _ => {}
         }
     }
