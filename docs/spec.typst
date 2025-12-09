@@ -1,0 +1,206 @@
+#import "@preview/rfc-vibe:0.1.0": *
+
+#show link: it => {
+  set text(blue)
+  if type(it.dest) != str {
+    it
+  }
+  else {
+    underline(it)
+  }
+}
+
+#set heading(numbering: "1.1")
+
+#text(size: 22pt)[The notificationd protocol]
+
+`notificationd` is a protocol and implementation for relaying notification for display on multiple devices.
+
+= Introduction
+
+#rfc-keyword-boilerplate
+
+= Protocol overview
+== Messages
+`notificationd` uses a plain-text line-based protocol for client/server communication.
+
+The following pseudo-bnf provides an overview of the protocol.
+
+// alpha should be redefined for command and argument
+```BNF
+message ::= [ <id> <space> ] [ <sign> ] <command> <arguments> [ [ <space> ] ':' <trailing> ] <crlf>
+id ::= <digit> { <digit> }
+sign ::= '+' | '-' | '$'
+command ::= <alpha> { <alpha> }
+arguments ::= { <space> <argument> }
+argument ::= <alpha> { <alpha> }
+trailing ::= <any character except CR or LF>
+space ::= ' ' { ' ' }
+crlf ::= CR LF
+```
+
+It is #recommended for servers to accept commands as case-insensitive.
+
+All messages with a sign are server messages. A message with sign plus (`+`) is a _succes reply_, and a message with sign minus (`-`) is a _failure reply_. In response to a command, a server may sent 0 or more _success replies_ or a single _failure reply_ but no combination of both. The dollar (`$`) sign indicates a command from the server.
+
+A _failure reply_ #must have its first argument set to a #link(<reply_errors>)[reply error].
+
+An empty _trailing text_ followed by a colon (`':'`) #should be accepted as an empty-string.
+
+= Notifications
+
+= Protocol message commands
+
+== Authentication
+The following commands relate to the authentication protocol.
+
+=== LOGIN
+```
+LOGIN <user> [password]
+```
+
+Login as `user`. When no `password` is supplied, access may be granted only if the server is configured to accept passwordless logins.
+
+== Notification details
+Notifications use much of the basic design of #link("https://specifications.freedesktop.org/notification-spec/latest/basic-design.html")[org,freedesktop.Notifications].
+
+Sending a message is a stateful process where the different _notification details_ commands configure the current message being sent. When the _notification details_ are finalized, they can be sent with #link(<send>)[SEND].
+
+To reset the currently configured _message details_, the command #link(<reset>)[RESET] may be used.
+
+The following details commands typically do not cause a succes reply.
+
+=== TITLE
+```
+TITLE : *
+```
+
+A title or summary of the notification.
+
+Similar to the "Summary" in Freedesktop notifications. `TITLE` was used a opposed to `SUMMARY` because it is shorter.
+
+=== BODY
+```
+BODY [RST] : *
+```
+
+The body of the notification. The trailing text is appended to the current body. Using the `RST` argument causes the body to be reset. If trailing text is used in combination with `RST`, then the trailing text is set as the current body (disregarding previous lines).
+
+=== ICON
+```
+ICON : *
+```
+
+Add a bitmap for the icon. The specific specs of the image will be documented later.
+
+=== QUIET
+```
+QUIET <bool>
+```
+
+If the notification should be displayed or simply stored.
+
+=== EPHERMAL
+```
+EPHERMAL <bool>
+```
+
+If the notification should be displayed then forgotten.
+
+== Notification transactions
+
+=== SEND <send>
+```
+SEND
+```
+
+Send the configured notification to the server. `SEND` #should-not cause the current message details configuration to be reset. Subsequently, repeated #should cause the last message to be resent.
+
+=== RESET <reset>
+```
+RESET
+```
+
+Reset the current notification configuration.
+
+=== NOTIFY_START
+```
+NOTIFY_START <user> <notification_id>
+```
+
+Sent by the server to inform that client that it will now list the details of a notification from <user> with id `notification_id`.
+
+The trailing text may be used to provide a timestamp.
+
+=== NOTIFY_END
+```
+NOTIFY_END <notification_id>
+```
+
+Sent by the server to inform the client that it will stop sending details of the notification with id `notification_id`.
+
+=== CONSUME
+```
+CONSUME [bool]
+```
+
+Ask the server to relay notifications over this connection (consuming them for this user). If no `bool` is supplied `true` is assumed.
+
+== Database
+The following commands may be used if notificationd is configured to be persistent.
+
+=== HISTORY
+```
+HISTORY [limit]
+```
+
+Request the last `limit` notifications from the database. If no `limit` is specified, the complete history is returned.
+
+=== SINCE
+```
+SINCE <offset>
+```
+
+Request all notifications with an ID higher than `offset`. This may be used by clients to track missed notifications.
+
+== Miscellaneous
+
+=== VERSION
+```
+VERSION
+```
+
+=== WHO
+```
+WHO
+```
+
+List connected peers.
+
+=== DELETE
+```
+DELETE <id>
+```
+
+Delete notification with id `id` from the database.
+
+=== QUIT
+```
+QUIT
+```
+Sent by the client to signal termination of the socket. No further messages should be sent.
+
+The server replies with the current version of the daemon.
+
+=== NOTICE
+```
+NOTICE : *
+```
+
+Sent by the server to relay some out-of-spec information to the client. The client may just ignore these messages, display them to the user or log them.
+
+= Protocol reply errors <reply_errors>
+
+The following error codes may be used as the first argument in _failure replies_.
+
+`PARSE`, `MISSING_TRAILING`, `NO_DB`, `DB_FAIL`, `INVALID_ARG`, `INVALID_MESSAGE`, `MISSING_ARG`
