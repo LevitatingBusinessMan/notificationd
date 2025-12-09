@@ -1,5 +1,4 @@
 use std::ffi::CStr;
-use std::ffi::CString;
 
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
@@ -59,5 +58,5 @@ impl<T> LogError for anyhow::Result<T> {
         }
         self
     }
-    
+
 }

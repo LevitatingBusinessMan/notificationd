@@ -247,13 +247,13 @@ impl ClientHandle {
                                     Ok(n) => {
                                         details.id = Some(db.last_insert_rowid() as usize);
                                         server::set_id(details.id.unwrap());
-                                        println!(
-                                            "Saved {}, {} row affected",
-                                            details.id.unwrap(),
+                                        info!("Saved notification from {} (id {})", details.user.unwrap(), details.id.unwrap());
+                                        debug!(
+                                            "{} row affected",
                                             n
                                         );
                                     }
-                                    Err(e) => println!("Error saving {}: {e}", details.id.unwrap()),
+                                    Err(e) => error!("Error saving {}: {e}", details.id.unwrap()),
                                 }
                             }
 
@@ -436,7 +436,7 @@ impl ClientHandle {
                                         "WHO",
                                         args,
                                         Some(&peer.to_string()),
-                                    ))? 
+                                    ))?
                             }
                             self.write(&protocol::reply(msg.id, true, "WHO", vec!["END"], None))?;
                         }
