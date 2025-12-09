@@ -115,5 +115,9 @@ pub fn main(bind: String) -> anyhow::Result<()> {
 
     crate::varlink::init(Some(server_handle.clone()))?;
 
+    if sd_notify::booted()? {
+        sd_notify::notify(false, &[sd_notify::NotifyState::Ready])?;
+    }
+
     Ok(server_handle.listen_incoming(listener)?)
 }
