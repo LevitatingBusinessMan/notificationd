@@ -1,5 +1,6 @@
 //! code for the client daemon
 
+use anyhow::Context;
 use nix;
 use std::collections::HashMap;
 use std::io::BufRead;
@@ -25,7 +26,7 @@ pub fn main(connect: String) -> anyhow::Result<()> {
     let mut writer = stream.try_clone()?;
     let reader = BufReader::new(stream);
 
-    let dbus_session = Connection::session()?;
+    let dbus_session = Connection::session().context("failed to connect to dbus")?;
     let notify_iface = dbus::NotificationsProxyBlocking::new(&dbus_session)?;
 
     writer.write_all(format!("login {user}@{hostname}\r\nconsume\r\n").as_bytes())?;
