@@ -2,6 +2,8 @@
 
 use anyhow::Context;
 use nix;
+use tracing::instrument;
+use tracing::{error, warn, info, debug, trace};
 use std::collections::HashMap;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -16,6 +18,7 @@ use crate::protocol;
 mod dbus;
 
 pub fn main(connect: String) -> anyhow::Result<()> {
+    info!("Started notificationd as client");
     let hostname = nix::unistd::gethostname()?;
     let hostname = hostname.to_string_lossy();
     let uid = nix::unistd::getuid();
@@ -37,7 +40,7 @@ pub fn main(connect: String) -> anyhow::Result<()> {
 
     for line in reader.lines() {
         let line = line?;
-        println!("{}", line);
+        debug!("received {}", line);
         let (_, msg) = protocol::parser::line(&line, false).unwrap();
         let cmd = msg.command.to_uppercase();
         match cmd.as_ref() {
@@ -97,7 +100,13 @@ fn display(
     notification: NotificationDetails,
     iface: &NotificationsProxyBlocking,
 ) -> anyhow::Result<()> {
-    eprintln!("{notification:?}");
+    info!(
+        "Displaying notification {}: {:?}",
+        notification.id.map_or(String::from("?"),
+        |id| id.to_string()),
+        notification.title.clone().unwrap_or(String::from(""))
+    );
+    debug!("{notification:?}");
     iface.notify(
         &notification.user.unwrap_or(String::from("notificationd")),
         0,
