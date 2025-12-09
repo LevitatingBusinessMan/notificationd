@@ -2,7 +2,6 @@
 
 use anyhow::Context;
 use nix;
-use tracing::instrument;
 use tracing::{error, warn, info, debug, trace};
 use std::collections::HashMap;
 use std::io::BufRead;
@@ -25,6 +24,8 @@ pub fn main(connect: String) -> anyhow::Result<()> {
     let user = nix::unistd::User::from_uid(nix::unistd::getuid())?.map_or(uid.to_string(), |u| u.name);
 
     let stream = TcpStream::connect(connect)?;
+
+    info!("Connected to {}", stream.peer_addr()?);
 
     let mut writer = stream.try_clone()?;
     let reader = BufReader::new(stream);
