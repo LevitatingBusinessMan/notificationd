@@ -22,7 +22,7 @@ impl VarlinkInterface for VarlinkHandles {
             ServerStatus {
                 bind: self.server.as_ref().unwrap().bind.to_string(),
                 connections: sh.clients_len() as i64,
-                db: sh.has_db()
+                persistent: sh.has_db()
             }
         });
         return  call.reply(server, None);

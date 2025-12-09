@@ -35,6 +35,7 @@ fn main() -> anyhow::Result<()> {
             if let Some(server) = status.server {
                 println!("Mode: server");
                 println!("Connections: {}", server.connections);
+                println!("Persistent: {}", server.persistent);
                 println!("Bind: {}", server.bind);
             }
             if let Some(client) = status.client {

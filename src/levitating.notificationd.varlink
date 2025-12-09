@@ -5,7 +5,7 @@ type Mode (Server, Client)
 type ServerStatus (
     bind: string,
     connections: int,
-    db: bool
+    persistent: bool
 )
 
 type ClientStatus (
