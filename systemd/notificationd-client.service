@@ -8,3 +8,4 @@ TimeoutStartSec=5s
 Restart=always
 RestartSteps=10
 RestartMaxDelaySec=1h
+StandardOutput=null
