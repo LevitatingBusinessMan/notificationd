@@ -1,3 +1,4 @@
+use std::io;
 use std::ffi::CStr;
 
 use tracing::level_filters::LevelFilter;
@@ -10,10 +11,11 @@ pub fn init() -> anyhow::Result<()> {
         .with_default_directive(LevelFilter::DEBUG.into())
         .from_env()?;
 
-    let stdout = tracing_subscriber::fmt::layer()
+    let stderr = tracing_subscriber::fmt::layer()
                 .without_time()
                 .with_target(false)
-                .with_thread_names(true);
+                .with_thread_names(true)
+                .with_writer(io::stderr);
 
     let syslog = {
         static IDENTITY: &'static CStr = c"notificationd";
@@ -30,7 +32,7 @@ pub fn init() -> anyhow::Result<()> {
 
     let registry = tracing_subscriber::registry()
         .with(env)
-        .with(stdout)
+        .with(stderr)
         .with(syslog);
     tracing::subscriber::set_global_default(registry)?;
     Ok(())
