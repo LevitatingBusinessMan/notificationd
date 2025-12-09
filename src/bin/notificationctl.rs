@@ -3,7 +3,6 @@ use clap::Parser;
 use notificationd::levitating_notificationd;
 use notificationd::levitating_notificationd::VarlinkClientInterface;
 use varlink::Connection;
-use sd_notify;
 
 #[derive(clap::Subcommand)]
 enum Command {
@@ -23,7 +22,7 @@ struct Cli {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     let uid = if cli.user {
-      nix::unistd::getuid()  
+      nix::unistd::getuid()
     } else {
         nix::unistd::Uid::from_raw(0)
     };

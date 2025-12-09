@@ -7,7 +7,6 @@ use std::io::BufReader;
 use std::io::Write;
 use std::net::TcpStream;
 use zbus::blocking::Connection;
-
 use notificationd::notifications::NotificationDetails;
 
 use crate::client::dbus::NotificationsProxyBlocking;
@@ -22,6 +21,7 @@ pub fn main(connect: String) -> anyhow::Result<()> {
     let user = nix::unistd::User::from_uid(nix::unistd::getuid())?.map_or(uid.to_string(), |u| u.name);
 
     let stream = TcpStream::connect(connect)?;
+
     let mut writer = stream.try_clone()?;
     let reader = BufReader::new(stream);
 
@@ -78,7 +78,12 @@ pub fn main(connect: String) -> anyhow::Result<()> {
             "LOGIN" => {
                 if msg.sign == Some('+') && !login_confirmation {
                     login_confirmation = true;
-                    sd_notify::notify(false, &[sd_notify::NotifyState::Ready])?;
+                    // notify systemd of readiness
+                    if sd_notify::booted()? {
+                        use sd_notify::NotifyState;
+                        let status = format!("Connected to {} as {}", writer.peer_addr()?, format!("{user}@{hostname}"));
+                        sd_notify::notify(false, &[NotifyState::Ready, NotifyState::Status(&status)])?;
+                    }
                 }
             },
             _ => {}
