@@ -23,21 +23,21 @@ pub fn reply(
     format!(
         "{}{}{}{}{}\r\n",
         if let Some(id) = id {
-            &format!("{} ", id)
+            format!("{} ", id)
         } else {
-            ""
+            String::new()
         },
         if success { "+" } else { "-" },
         command,
         if arguments.is_empty() {
-            ""
+            String::new()
         } else {
-            &format!(" {}", arguments.join(" "))
+            format!(" {}", arguments.join(" "))
         },
         if let Some(trailing) = trailing {
-            &format!(" : {}", trailing)
+            format!(" : {}", trailing)
         } else {
-            ""
+            String::new()
         }
     )
 }
