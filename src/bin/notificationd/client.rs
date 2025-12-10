@@ -10,6 +10,7 @@ use std::io::Write;
 use std::net::TcpStream;
 use zbus::blocking::Connection;
 use notificationd::notifications::NotificationDetails;
+#[cfg(target_os = "linux")]
 use libsystemd as systemd;
 
 use crate::client::dbus::NotificationsProxyBlocking;
@@ -85,6 +86,7 @@ pub fn main(connect: String) -> anyhow::Result<()> {
                 if msg.sign == Some('+') && !login_confirmation {
                     login_confirmation = true;
                     // notify systemd of readiness
+                    #[cfg(target_os = "linux")]
                     if systemd::daemon::booted() {
                         use systemd::daemon::NotifyState;
                         let status = format!("Connected to {} as {}", writer.peer_addr()?, format!("{user}@{hostname}"));

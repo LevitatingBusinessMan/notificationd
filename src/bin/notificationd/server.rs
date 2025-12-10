@@ -4,6 +4,7 @@ use std::net::TcpListener;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
+#[cfg(target_os = "linux")]
 use libsystemd as systemd;
 
 use client::ClientHandle;
@@ -115,6 +116,7 @@ pub fn main(bind: String) -> anyhow::Result<()> {
 
     crate::varlink::init(Some(server_handle.clone()))?;
 
+    #[cfg(target_os = "linux")]
     if systemd::daemon::booted() {
         systemd::daemon::notify(false, &[systemd::daemon::NotifyState::Ready])?;
     }
