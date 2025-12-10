@@ -1,10 +1,10 @@
 use anyhow;
 use std::io;
-use std::io::BufRead;
 use std::net::TcpListener;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
+use libsystemd as systemd;
 
 use client::ClientHandle;
 
@@ -115,8 +115,8 @@ pub fn main(bind: String) -> anyhow::Result<()> {
 
     crate::varlink::init(Some(server_handle.clone()))?;
 
-    if sd_notify::booted()? {
-        sd_notify::notify(false, &[sd_notify::NotifyState::Ready])?;
+    if systemd::daemon::booted() {
+        systemd::daemon::notify(false, &[systemd::daemon::NotifyState::Ready])?;
     }
 
     Ok(server_handle.listen_incoming(listener)?)
