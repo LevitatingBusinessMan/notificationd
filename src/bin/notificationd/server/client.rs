@@ -187,7 +187,7 @@ impl ClientHandle {
                     self.write(&protocol::reply(
                         msg.id,
                         false,
-                        "-ERR",
+                        "ERR",
                         vec!["NO_LOGIN"],
                         Some("Please login first."),
                     ))?
